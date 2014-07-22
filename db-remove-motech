@@ -1,0 +1,27 @@
+#!/usr/bin/python
+
+"""
+usage: db-remove [-h] [--url URL]
+
+optional arguments:
+  -h, --help  show this help message and exit
+  --url URL   remove databases from given url
+"""
+
+import json
+import urllib2
+import argparse
+
+from subprocess import call
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--url', help = 'remove databases from given url', default = 'http://localhost:5984/')
+    args = parser.parse_args()
+
+    print 'Remove databases from %s' % args.url
+
+    for db in json.load(urllib2.urlopen(args.url + '_all_dbs')):
+        if 'motech' in db:
+            print '%s:' % db
+            call(['curl', '-X', 'DELETE', args.url + db])

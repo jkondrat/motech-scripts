@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Displays tomcat logs
+# Usage tomcat-log [-tml]
+# -l uses less (default option)
+# -t uses tail -F (logs actively printed on screen)
+# -m uses more
+
+CMD='less'
+
+while getopts "tml" opt; do
+	case $opt in
+		t)
+			CMD='tail -F'
+		;;
+		l)
+			CMD='less'
+		;;
+		m)
+			CMD='more'		   
+		;;
+	esac
+done
+
+$CMD $CATALINA_HOME/logs/catalina.out

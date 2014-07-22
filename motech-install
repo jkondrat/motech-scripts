@@ -1,0 +1,79 @@
+#!/bin/bash
+
+# Does a motech installation. Uses $MOTECH_TRUNK variable to determine the trunk location.
+# Can also build separate modules, and also jar+bundle combos.
+# 
+#	Usage examples:
+# 	motech-install             					   	builds entire motech
+#	motech-install motech						   	builds motech platform
+#	motech-install platform-communications				   	builds platform communications
+#	motech-install platform-communications/modules/ivr/api-bundle    	builds the api-bundle
+# 	motech-install platform-communications/modules/ivr 			builds everything in ivr module 
+#
+#	Building a module will replace the old bundle in ~/.motech/bundles with the new one.
+#	If you changed files in the regular jar, you will also have to build the bundle for the changes to be reflected in MOTECH.
+#	This script always restarts tomcat in debug mode and replaces the old .war file with the one from the trunk. 	
+#
+#	Repositories have to be named motech, platform-campaigns, platform-communications, platform-medical-records, demo
+#	and all of them have to be in same directory ($MOTECH_TRUNK/..)
+#
+#	Instead of platform name you can use shortcuts
+#	mt = motech
+#	pcom = platform-communications	
+#	pcam = platform-campaigns
+#	pmr = platform-medical-records
+
+MVN="mvn clean install -Dmaven.test.skip=true"
+
+MODULE=''
+
+REPO_DIR=$MOTECH_TRUNK/..
+
+function build {
+	if [ -d $1 ]; then
+		if [ -f $1/pom.xml ]; then
+			$MVN -f $1/pom.xml
+		else
+			for pom in `find $1 -maxdepth 2 -type f -name "pom.xml"  | awk '{print length, $0}' | sort -n | cut -d " " -f2-`; do
+				$MVN -f $pom
+			done  
+		fi
+	fi
+}
+
+if [ $# -gt 0 ]; then
+	MODULE=$1
+	MODULE=`echo ${MODULE/#mt/motech}`
+	MODULE=`echo ${MODULE/#pcom/platform-communications}`
+	MODULE=`echo ${MODULE/#pcam/platform-campaigns}`
+	MODULE=`echo ${MODULE/#pmr/platform-medical-records}`
+	MODULE_DIR=$REPO_DIR/$MODULE
+
+	if [ ! -d $MODULE_DIR ]; then 
+		echo "$MODULE_DIR does not exist"
+		exit 1
+	fi
+fi
+
+$CATALINA_HOME/bin/shutdown.sh
+
+# build entire motech
+if [ $# -eq 0 ]; then
+	build "$REPO_DIR/motech"
+	build "$REPO_DIR/platform-communications"
+	build "$REPO_DIR/platform-medical-records"
+	build "$REPO_DIR/platform-campaigns"
+	build "$REPO_DIR/demo"
+else
+	build $MODULE_DIR
+fi
+
+rm $CATALINA_HOME/webapps/motech-platform-server.war
+rm -r $CATALINA_HOME/webapps/motech-platform-server
+cp $MOTECH_TRUNK/platform/server/target/motech-platform-server.war $CATALINA_HOME/webapps
+
+# die tomcat
+ps aux | grep tomcat | awk '{print $2}' | xargs kill
+
+sleep 2
+$CATALINA_HOME/bin/catalina.sh jpda start
