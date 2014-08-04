@@ -1,5 +1,5 @@
 #!/bin/bash
-MVN="mvn clean install -U -Dmaven.test.skip=true"
+MVN="mvn clean install -Dmaven.test.skip=true"
 MOTECH_CONFIG=$HOME/.motech
 #CATALINA_HOME=$HOME/apache-tomcat-7.0.22
 
@@ -9,7 +9,7 @@ MOTECH_BRANCH_OLD=tags/motech-0.22
 
 MOTECH_COMMUNICATIONS=$HOME/motech/motech-communications
 MOTECH_MODULES=$HOME/motech/modules
-MODULES_BRANCH=dev/mtraining2mds
+MODULES_BRANCH=dev/whp-mtraining
 
 IMPL=$HOME/motech/whp-mTraining
 MOTECH_SCRIPTS=$HOME/motech/motech-scripts
@@ -41,17 +41,18 @@ function createQuartzDb {
 	fi
 }
 
+function resetMdsDb {
+	mysql -u root -ppassword -e 'drop database if exists motech_data_services; create database motech_data_services'
+}
+
 function removeCouchDatabase {
     $MOTECH_SCRIPTS/db-remove-motech
 }
 
 function checkoutPlatform {
 	cd $MOTECH_TRUNK
-	git reset --hard
-    git checkout $1
-	if [ "$1" == $MOTECH_BRANCH ]; then
-		git cherry-pick f1f47ea768bafc9b0855d9c9011d3f8cd33316db
-	fi
+	#git reset --hard
+    #git checkout $1
 }
 
 function modifyPlatformPom {
@@ -84,7 +85,6 @@ function deployPlatform {
 }
 
 function rebuildModules {
-	mysql -u root -ppassword -e 'drop database if exists motech_data_services; create database motech_data_services'
 	cd $MOTECH_MODULES/mtraining/
 	git checkout $MODULES_BRANCH
 	$MVN
@@ -112,16 +112,29 @@ function rebuildImpl {
 		git reset --hard 57cc9ce87527f0996d88aa589941864689da4378
 		modifyImplPom
 	elif [ "$1" == $MOTECH_BRANCH ]; then
-		git reset --hard origin/master
+		git rebase origin/phase2
 	fi
 	$MVN
 }
 
 cd $HOME
-if [ "$1" == "impl" ]; then
+if [ "$1" == "mtraining" ]; then
+    stopTomcat
+    rebuildModules
+    rebuildImpl
+    startTomcat
+elif [ "$1" == "impl" ]; then
     stopTomcat
     rebuildImpl
     startTomcat
+elif [ "$1" == "mod" ]; then
+    stopTomcat
+    rebuildModules
+    startTomcat
+elif [ "$1" == "resetdb" ]; then
+	stopTomcat
+    createQuartzDb
+    resetMdsDb
 elif [ "$1" == "restart" ]; then
     restartTomcat
 elif [ "$1" == "stop" ]; then
@@ -141,6 +154,7 @@ else
     stopTomcat
     createQuartzDb $MOTECH_BRANCH
     removeCouchDatabase
+    resetMdsDb
     rebuildPlatform $MOTECH_BRANCH
     rebuildModules
     rebuildImpl $MOTECH_BRANCH
