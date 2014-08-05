@@ -9,7 +9,7 @@ MOTECH_BRANCH_OLD=tags/motech-0.22
 
 MOTECH_COMMUNICATIONS=$HOME/motech/motech-communications
 MOTECH_MODULES=$HOME/motech/modules
-MODULES_BRANCH=dev/whp-mtraining
+MODULES_BRANCH=origin/0.24.X
 
 IMPL=$HOME/motech/whp-mTraining
 MOTECH_SCRIPTS=$HOME/motech/motech-scripts
