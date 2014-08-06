@@ -12,7 +12,7 @@ MOTECH_MODULES=$HOME/motech/modules
 MODULES_BRANCH=origin/0.24.X
 
 IMPL=$HOME/motech/whp-mTraining
-MOTECH_SCRIPTS=$HOME/motech/motech-scripts
+IMPL_BRANCH=origin/phase2
 
 function stopTomcat {
     $CATALINA_HOME/bin/catalina.sh jpda stop
@@ -45,14 +45,11 @@ function resetMdsDb {
 	mysql -u root -ppassword -e 'drop database if exists motech_data_services; create database motech_data_services'
 }
 
-function removeCouchDatabase {
-    $MOTECH_SCRIPTS/db-remove-motech
-}
-
 function checkoutPlatform {
 	cd $MOTECH_TRUNK
-	#git reset --hard
-    #git checkout $1
+    git fetch
+	git reset --hard
+    git checkout $1
 }
 
 function modifyPlatformPom {
@@ -86,6 +83,7 @@ function deployPlatform {
 
 function rebuildModules {
 	cd $MOTECH_MODULES/mtraining/
+    git fetch
 	git checkout $MODULES_BRANCH
 	$MVN
 }
@@ -112,7 +110,8 @@ function rebuildImpl {
 		git reset --hard 57cc9ce87527f0996d88aa589941864689da4378
 		modifyImplPom
 	elif [ "$1" == $MOTECH_BRANCH ]; then
-		git rebase origin/phase2
+        git fetch
+		git rebase $IMPL_BRANCH
 	fi
 	$MVN
 }
@@ -144,7 +143,6 @@ elif [ "$1" == "old" ]; then
 	# Create database named "whp" in Postgres
     stopTomcat
     createQuartzDb $MOTECH_BRANCH_OLD
-    removeCouchDatabase
     rebuildPlatform $MOTECH_BRANCH_OLD
     rebuildCommunications
     rebuildImpl $MOTECH_BRANCH_OLD
@@ -153,7 +151,6 @@ elif [ "$1" == "old" ]; then
 else
     stopTomcat
     createQuartzDb $MOTECH_BRANCH
-    removeCouchDatabase
     resetMdsDb
     rebuildPlatform $MOTECH_BRANCH
     rebuildModules
