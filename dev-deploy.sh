@@ -1,13 +1,13 @@
 #!/bin/bash
 MVN="mvn clean install -Dmaven.test.skip=true"
 MOTECH_CONFIG=$HOME/.motech
-CATALINA_HOME=$HOME/tomcat
+CATALINA_HOME=$HOME/apache-tomcat
 
-MOTECH_TRUNK=$HOME/motech/motech/
-MOTECH_BRANCH=master
+MOTECH_TRUNK=$HOME/motech
+MOTECH_BRANCH=0.25.X
 
-MOTECH_MODULES=$HOME/motech/modules
-MODULES_BRANCH=master
+MOTECH_MODULES=$HOME/modules/message-campaign
+MODULES_BRANCH=0.25.X
 
 IMPL=$HOME/nyvrs
 IMPL_BRANCH=master
@@ -20,6 +20,12 @@ function stopTomcat {
 function startTomcat {
     $CATALINA_HOME/bin/catalina.sh jpda start
 	tail -f $CATALINA_HOME/logs/catalina.out
+}
+
+function resetQuartzDb {
+	mysql -u root -ppassword -e 'drop database if exists motechquartz; create database motechquartz'
+	checkoutPlatform $1
+	mysql -u root -ppassword motechquartz < $MOTECH_TRUNK/modules/scheduler/sql/mysql_quartz_schema_v2.1.sql
 }
 
 function resetMdsDb {
@@ -70,6 +76,7 @@ if [ "$1" == "rebuild" ]; then
     startTomcat
 elif [ "$1" == "resetdb" ]; then
 	stopTomcat
+    resetQuartzDb
     resetMdsDb
 elif [ "$1" == "restart" ]; then
     stopTomcat
@@ -78,6 +85,7 @@ elif [ "$1" == "stop" ]; then
     stopTomcat
 elif [ "$1" == "install" ]; then
     stopTomcat
+    resetQuartzDb
     resetMdsDb
     rebuildPlatform
     rebuildModules
