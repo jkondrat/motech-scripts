@@ -8,14 +8,14 @@ MOTECH_CHECKOUT=true
 MOTECH_BRANCH=master
 
 MOTECH_MODULES=$HOME/modules
-MOTECH_MODULE_LIST=( csd message-campaign ivr sms )
+MOTECH_MODULE_LIST=( csd )
 MODULES_CHECKOUT=false
 MODULES_BRANCH=dev/csd
 
 REBUILD_MODULES=true
 
 IMPL=$HOME/ebodac
-IMPL_ENABLED=false
+IMPL_ENABLED=true
 
 function stopTomcat {
     $CATALINA_HOME/bin/catalina.sh jpda stop
